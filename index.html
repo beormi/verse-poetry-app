@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verse — Learn Poetry by Heart</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Josefin+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --parchment: #f5efe3;
+    --gold: #c9a84c;
+    --gold-light: #e8cc7e;
+    --rust: #8b3a2a;
+    --sage: #4a5e4e;
+    --cream: #faf6ed;
+    --red: #c0392b;
+    --shadow: rgba(26,18,8,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cormorant Garamond', serif;
+    background: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .screen.active { display: flex; }
+
+  /* ===== HOME ===== */
+  #home {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .logo-area { margin-bottom: 3rem; }
+  .logo-ornament { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem; }
+  .ornament-line { width: 60px; height: 1px; background: linear-gradient(to right, transparent, var(--gold)); }
+  .ornament-line.right { background: linear-gradient(to left, transparent, var(--gold)); }
+  .ornament-diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); }
+
+  h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(3.5rem, 10vw, 6rem); font-weight: 300; letter-spacing: 0.15em; line-height: 1; }
+  .tagline { font-family: 'Josefin Sans', sans-serif; font-size: 0.7rem; font-weight: 200; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); margin-top: 0.75rem; }
+
+  .poem-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; max-width: 900px; width: 100%; margin-bottom: 2rem; }
+
+  .poem-card {
+    background: var(--cream); border: 1px solid rgba(201,168,76,0.3); padding: 2rem;
+    cursor: pointer; position: relative; transition: all 0.3s ease; text-align: left; overflow: hidden;
+  }
+  .poem-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to right, var(--gold), var(--gold-light), var(--gold)); transform: scaleX(0); transition: transform 0.3s ease; }
+  .poem-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px var(--shadow); border-color: var(--gold); }
+  .poem-card:hover::before { transform: scaleX(1); }
+
+  .card-number { font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--gold); text-transform: uppercase; margin-bottom: 1rem; }
+  .card-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; line-height: 1.2; }
+  .card-author { font-size: 0.9rem; font-style: italic; color: var(--sage); margin-bottom: 1rem; }
+  .card-preview { font-size: 0.85rem; color: rgba(26,18,8,0.5); font-style: italic; line-height: 1.6; border-left: 2px solid rgba(201,168,76,0.3); padding-left: 0.75rem; }
+  .card-meta { display: flex; gap: 0.75rem; margin-top: 1.25rem; flex-wrap: wrap; }
+  .card-pill { font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; background: rgba(201,168,76,0.12); color: var(--gold); padding: 0.25rem 0.6rem; border: 1px solid rgba(201,168,76,0.25); }
+  .card-pill.due { background: rgba(139,58,42,0.1); color: var(--rust); border-color: rgba(139,58,42,0.3); }
+
+  /* ===== POEM SCREEN ===== */
+  #poem-screen { flex-direction: column; max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem 10rem; }
+
+  .nav-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(201,168,76,0.2); }
+  .back-btn { font-family: 'Josefin Sans', sans-serif; font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: opacity 0.2s; }
+  .back-btn:hover { opacity: 0.7; }
+  .mode-badge { font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--sage); }
+
+  .poem-header { margin-bottom: 2.5rem; text-align: center; }
+  .poem-title { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 400; line-height: 1.2; margin-bottom: 0.5rem; }
+  .poem-author { font-family: 'Josefin Sans', sans-serif; font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); }
+
+  .progress-track { height: 2px; background: rgba(201,168,76,0.15); margin-bottom: 0.5rem; }
+  .progress-fill { height: 100%; background: linear-gradient(to right, var(--gold), var(--gold-light)); transition: width 0.5s ease; width: 0%; }
+  .progress-label { font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(26,18,8,0.4); text-align: right; margin-bottom: 2rem; }
+
+  /* Spaced repetition banner */
+  .sr-banner {
+    background: rgba(74,94,78,0.08);
+    border: 1px solid rgba(74,94,78,0.2);
+    border-left: 3px solid var(--sage);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    font-family: 'Josefin Sans', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--sage);
+    display: none;
+  }
+  .sr-banner.show { display: block; }
+
+  /* Poem body */
+  .poem-body { line-height: 2; font-size: clamp(1rem, 2.5vw, 1.2rem); margin-bottom: 2.5rem; }
+  .stanza { margin-bottom: 2rem; }
+  .line { display: block; transition: all 0.3s ease; white-space: pre-wrap; min-height: 1.5em; padding: 2px 0; }
+
+  .word { display: inline; transition: all 0.4s ease; position: relative; }
+  .word.hidden {
+    color: transparent; border-bottom: 1px solid rgba(201,168,76,0.5);
+    cursor: default; user-select: none; min-width: 2ch; display: inline-block;
+  }
+  .word.hidden::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+  }
+  .word.revealed { animation: wordReveal 0.4s ease forwards; }
+  @keyframes wordReveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .line.current-line {
+    background: rgba(201,168,76,0.07);
+    border-left: 2px solid var(--gold);
+    padding-left: 0.75rem;
+    margin-left: -0.85rem;
+    border-radius: 0 2px 2px 0;
+  }
+
+  /* ===== CONTROLS ===== */
+  .controls {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 680px;
+    background: linear-gradient(to top, var(--parchment) 75%, transparent);
+    padding: 1.5rem 1.5rem 2rem; z-index: 10;
+  }
+
+  .controls-inner {
+    background: var(--cream);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 2px;
+    padding: 1.25rem 1.5rem;
+    display: flex; flex-direction: column; gap: 0.9rem;
+    box-shadow: 0 -4px 30px var(--shadow);
+  }
+
+  .mode-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .mode-tab {
+    font-family: 'Josefin Sans', sans-serif; font-size: 0.58rem; letter-spacing: 0.18em;
+    text-transform: uppercase; background: none; border: 1px solid rgba(201,168,76,0.25);
+    color: rgba(26,18,8,0.4); padding: 0.32rem 0.65rem; cursor: pointer; transition: all 0.2s;
+  }
+  .mode-tab.active { background: var(--gold); color: var(--cream); border-color: var(--gold); }
+  .mode-tab:hover:not(.active) { border-color: var(--gold); color: var(--gold); }
+
+  .controls-buttons { display: flex; align-items: center; justify-content: center; gap: 0.6rem; flex-wrap: wrap; }
+
+  .btn {
+    font-family: 'Josefin Sans', sans-serif; font-size: 0.62rem; letter-spacing: 0.18em;
+    text-transform: uppercase; border: none; cursor: pointer; padding: 0.6rem 1.1rem;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: var(--ink); color: var(--cream); }
+  .btn-primary:hover { background: #2d1f0d; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: none; border: 1px solid rgba(26,18,8,0.2); color: var(--ink); }
+  .btn-secondary:hover { border-color: var(--ink); }
+  .btn-ghost { background: none; color: rgba(26,18,8,0.4); padding: 0.6rem 0.5rem; font-size: 1rem; letter-spacing: 0; }
+  .btn-ghost:hover { color: var(--ink); }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { background: #a93226; }
+
+  /* Mic button */
+  .btn-mic {
+    background: none;
+    border: 2px solid var(--sage);
+    color: var(--sage);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    font-size: 1.1rem;
+    padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-mic:hover { background: rgba(74,94,78,0.1); }
+  .btn-mic.recording {
+    background: var(--red);
+    border-color: var(--red);
+    color: white;
+    animation: micPulse 1s infinite;
+  }
+  @keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.4); } 50% { box-shadow: 0 0 0 8px rgba(192,57,43,0); } }
+
+  /* Audio visualizer */
+  .audio-viz { display: flex; align-items: center; gap: 3px; height: 20px; margin-left: auto; }
+  .viz-bar { width: 3px; background: var(--gold); border-radius: 2px; height: 4px; }
+  .audio-viz.playing .viz-bar:nth-child(1) { animation: vizPulse 0.7s 0.0s infinite alternate ease-in-out; }
+  .audio-viz.playing .viz-bar:nth-child(2) { animation: vizPulse 0.7s 0.15s infinite alternate ease-in-out; }
+  .audio-viz.playing .viz-bar:nth-child(3) { animation: vizPulse 0.7s 0.05s infinite alternate ease-in-out; }
+  .audio-viz.playing .viz-bar:nth-child(4) { animation: vizPulse 0.7s 0.2s infinite alternate ease-in-out; }
+  .audio-viz.playing .viz-bar:nth-child(5) { animation: vizPulse 0.7s 0.1s infinite alternate ease-in-out; }
+  @keyframes vizPulse { from { height: 4px; } to { height: 16px; } }
+
+  .status-row { display: flex; align-items: center; gap: 0.75rem; }
+  .status-text {
+    font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--gold); flex: 1; min-height: 1em;
+  }
+  .status-text.error { color: var(--red); }
+  .status-text.success { color: var(--sage); }
+
+  /* STT transcript bubble */
+  .transcript-bubble {
+    background: rgba(74,94,78,0.08);
+    border: 1px solid rgba(74,94,78,0.2);
+    padding: 0.6rem 0.9rem;
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--sage);
+    display: none;
+    border-radius: 2px;
+  }
+  .transcript-bubble.show { display: block; }
+
+  /* Loading spinner */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(201,168,76,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+    flex-shrink: 0;
+  }
+  .spinner.show { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== COMPLETION ===== */
+  .completion-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(245,239,227,0.97); z-index: 50;
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 2rem; animation: fadeIn 0.5s ease;
+  }
+  .completion-overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .completion-star { font-size: 3rem; margin-bottom: 1rem; animation: starPop 0.5s 0.2s both; }
+  @keyframes starPop { from { transform: scale(0) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+  .completion-title { font-size: 2.5rem; font-weight: 300; margin-bottom: 0.5rem; }
+  .completion-sub { font-family: 'Josefin Sans', sans-serif; font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); margin-bottom: 1.5rem; }
+  .completion-next { font-family: 'Josefin Sans', sans-serif; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--sage); margin-bottom: 2rem; padding: 0.75rem 1.25rem; border: 1px solid rgba(74,94,78,0.3); }
+  .completion-quote { font-style: italic; font-size: 1.05rem; color: rgba(26,18,8,0.55); max-width: 380px; line-height: 1.8; margin-bottom: 2rem; border-left: 2px solid var(--gold); padding-left: 1rem; text-align: left; }
+  .completion-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+
+  /* ===== CHUNK PICKER SCREEN ===== */
+  #chunk-screen {
+    flex-direction: column;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+    align-items: stretch;
+  }
+  .chunk-header { text-align: center; margin-bottom: 2rem; }
+  .chunk-title { font-size: clamp(1.5rem, 4vw, 2.2rem); font-weight: 400; margin-bottom: 0.3rem; }
+  .chunk-author { font-family: 'Josefin Sans', sans-serif; font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gold); }
+  .chunk-instruction { font-family: 'Josefin Sans', sans-serif; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(26,18,8,0.45); margin: 1.5rem 0 0.75rem; }
+  .chunk-option {
+    background: var(--cream); border: 1px solid rgba(201,168,76,0.25);
+    padding: 1rem 1.25rem; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    margin-bottom: 0.5rem; position: relative; overflow: hidden;
+  }
+  .chunk-option::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); transform: scaleY(0); transition: transform 0.2s; }
+  .chunk-option:hover, .chunk-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.06); }
+  .chunk-option:hover::before, .chunk-option.selected::before { transform: scaleY(1); }
+  .chunk-option-left { flex: 1; min-width: 0; }
+  .chunk-option-label { font-size: 1.05rem; font-weight: 400; line-height: 1.3; }
+  .chunk-option-sub { font-size: 0.78rem; font-style: italic; color: rgba(26,18,8,0.45); margin-top: 0.15rem; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chunk-option-lines { font-family: 'Josefin Sans', sans-serif; font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); flex-shrink: 0; }
+  .chunk-divider { display: flex; align-items: center; gap: 0.75rem; margin: 1.25rem 0 0.75rem; font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(26,18,8,0.3); }
+  .chunk-divider::before, .chunk-divider::after { content: ''; flex: 1; height: 1px; background: rgba(201,168,76,0.2); }
+  .chunk-start-btn { margin-top: 1.5rem; width: 100%; padding: 0.9rem; font-size: 0.7rem; letter-spacing: 0.25em; justify-content: center; }
+
+  /* ===== CHUNK NAV BAR ===== */
+  .chunk-nav { display: none; align-items: center; gap: 0.6rem; margin-bottom: 1.5rem; padding: 0.65rem 1rem; background: rgba(201,168,76,0.05); border: 1px solid rgba(201,168,76,0.2); }
+  .chunk-nav.show { display: flex; }
+  .chunk-nav-label { font-family: 'Josefin Sans', sans-serif; font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); flex: 1; }
+  .chunk-pip-row { display: flex; gap: 4px; }
+  .chunk-pip { width: 8px; height: 8px; border: 1px solid rgba(201,168,76,0.4); border-radius: 50%; transition: all 0.25s; }
+  .chunk-pip.done { background: var(--gold-light); border-color: var(--gold); }
+  .chunk-pip.active { background: var(--gold); border-color: var(--gold); transform: scale(1.25); }
+  .chunk-nav-btn { font-family: 'Josefin Sans', sans-serif; font-size: 0.56rem; letter-spacing: 0.15em; text-transform: uppercase; background: none; border: 1px solid rgba(201,168,76,0.3); color: var(--gold); padding: 0.22rem 0.55rem; cursor: pointer; transition: all 0.2s; }
+  .chunk-nav-btn:hover:not(:disabled) { background: var(--gold); color: var(--cream); }
+  .chunk-nav-btn:disabled { opacity: 0.28; cursor: default; }
+
+  /* Stanza dimming */
+  .stanza.out-of-chunk { opacity: 0.15; pointer-events: none; filter: blur(0.6px); transition: opacity 0.4s, filter 0.4s; }
+  .stanza.in-chunk { opacity: 1; filter: none; transition: opacity 0.4s, filter 0.4s; }
+
+  /* Chain banner */
+  .chain-banner { display: none; background: rgba(74,94,78,0.07); border: 1px solid rgba(74,94,78,0.2); border-left: 3px solid var(--sage); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-family: 'Josefin Sans', sans-serif; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--sage); }
+  .chain-banner.show { display: block; }
+
+  @media (max-width: 500px) {
+    .poem-cards { grid-template-columns: 1fr; }
+    .controls-buttons { justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="logo-area">
+    <div class="logo-ornament">
+      <div class="ornament-line"></div>
+      <div class="ornament-diamond"></div>
+      <div class="ornament-line right"></div>
+    </div>
+    <h1>Verse</h1>
+    <p class="tagline">Learn poetry by heart</p>
+  </div>
+  <div class="poem-cards" id="poem-cards"></div>
+</div>
+
+<!-- CHUNK PICKER -->
+<div id="chunk-screen" class="screen">
+  <div class="chunk-header">
+    <div class="chunk-title" id="chunk-poem-title"></div>
+    <div class="chunk-author" id="chunk-poem-author"></div>
+  </div>
+
+  <div class="chunk-instruction">Choose what to learn</div>
+  <div id="chunk-options"></div>
+
+  <div class="chunk-divider">or</div>
+
+  <div id="chunk-custom-options"></div>
+
+  <button class="btn btn-primary chunk-start-btn" onclick="startWithChunk()">Begin Learning →</button>
+  <button class="btn btn-ghost" style="justify-content:center;margin-top:0.5rem;width:100%" onclick="goHome()">← Back to Library</button>
+</div>
+
+<!-- POEM SCREEN -->
+<div id="poem-screen" class="screen">
+  <div class="nav-bar">
+    <button class="back-btn" onclick="goHome()">← Library</button>
+    <span class="mode-badge" id="current-mode-label">Read Mode</span>
+  </div>
+
+  <div class="poem-header">
+    <div class="poem-title" id="poem-title"></div>
+    <div class="poem-author" id="poem-author"></div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="progress-label" id="progress-label">Step 1 of 4</div>
+
+  <div class="sr-banner" id="sr-banner"></div>
+  <div class="chain-banner" id="chain-banner"></div>
+
+  <!-- Chunk nav bar -->
+  <div class="chunk-nav" id="chunk-nav">
+    <div class="chunk-nav-label" id="chunk-nav-label">Stanza 1 of 4</div>
+    <div class="chunk-pip-row" id="chunk-pip-row"></div>
+    <button class="chunk-nav-btn" id="chunk-prev-btn" onclick="goToPrevChunk()">← Prev</button>
+    <button class="chunk-nav-btn" id="chunk-next-btn" onclick="goToNextChunk()">Next →</button>
+  </div>
+
+  <div class="poem-body" id="poem-body"></div>
+
+  <div class="controls">
+    <div class="controls-inner">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div class="mode-tabs">
+          <button class="mode-tab active" onclick="setMode('read')" id="tab-read">Read</button>
+          <button class="mode-tab" onclick="setMode('listen')" id="tab-listen">Listen</button>
+          <button class="mode-tab" onclick="setMode('recall')" id="tab-recall">Recall</button>
+          <button class="mode-tab" onclick="setMode('test')" id="tab-test">Test</button>
+        </div>
+        <div class="audio-viz" id="audio-viz">
+          <div class="viz-bar"></div><div class="viz-bar"></div><div class="viz-bar"></div>
+          <div class="viz-bar"></div><div class="viz-bar"></div>
+        </div>
+      </div>
+
+      <div class="transcript-bubble" id="transcript-bubble"></div>
+
+      <div class="controls-buttons">
+        <button class="btn btn-ghost" onclick="prevLine()" title="Previous">⏮</button>
+        <button class="btn btn-primary" id="main-btn" onclick="handleMain()">
+          <span id="main-btn-icon">▶</span>
+          <span id="main-btn-label">Play</span>
+        </button>
+        <button class="btn btn-ghost" onclick="nextLine()" title="Next">⏭</button>
+        <button class="btn btn-secondary" onclick="revealCurrent()" id="reveal-btn" style="display:none">Reveal</button>
+        <button class="btn-mic" id="mic-btn" onclick="toggleMic()" style="display:none" title="Speak the line">🎙</button>
+      </div>
+
+      <div class="status-row">
+        <div class="spinner" id="spinner"></div>
+        <div class="status-text" id="status-text">Choose a mode to begin</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETION -->
+<div class="completion-overlay" id="completion">
+  <div class="completion-star">✦</div>
+  <div class="completion-title" id="completion-title">Well done</div>
+  <div class="completion-sub" id="completion-sub">The poem is yours</div>
+  <div class="completion-next" id="completion-next" style="display:none"></div>
+  <div class="completion-quote" id="completion-quote"></div>
+  <div class="completion-actions" id="completion-actions">
+    <button class="btn btn-primary" onclick="advanceMode()">Next Stage</button>
+    <button class="btn btn-secondary" onclick="restartPoem()">Practice Again</button>
+    <button class="btn btn-secondary" onclick="goHome()">Library</button>
+  </div>
+</div>
+
+<script>
+// =====================
+// POEMS
+// =====================
+const POEMS = [
+  {
+    id: 'frost-road',
+    title: "The Road Not Taken",
+    author: "Robert Frost",
+    difficulty: "Beginner",
+    preview: "Two roads diverged in a yellow wood,\nAnd sorry I could not travel both…",
+    stanzas: [
+      ["Two roads diverged in a yellow wood,","And sorry I could not travel both","And be one traveler, long I stood","And looked down one as far as I could"],
+      ["To where it bent in the undergrowth;","","Then took the other, as just as fair,","And having perhaps the better claim,"],
+      ["Because it was grassy and wanted wear;","Though as for that the passing there","Had worn them really about the same,",""],
+      ["And both that morning equally lay","In leaves no step had trodden black.","Oh, I kept the first for another day!","Yet knowing how way leads on to way,"],
+      ["I doubted if I should ever come back.","","I shall be telling this with a sigh","Somewhere ages and ages hence:"],
+      ["Two roads diverged in a wood, and I—","I took the one less traveled by,","And that has made all the difference.",""]
+    ]
+  },
+  {
+    id: 'shakespeare-sonnet18',
+    title: "Shall I Compare Thee",
+    author: "William Shakespeare",
+    difficulty: "Intermediate",
+    preview: "Shall I compare thee to a summer's day?\nThou art more lovely and more temperate…",
+    stanzas: [
+      ["Shall I compare thee to a summer's day?","Thou art more lovely and more temperate.","Rough winds do shake the darling buds of May,","And summer's lease hath all too short a date."],
+      ["Sometime too hot the eye of heaven shines,","And often is his gold complexion dimmed;","And every fair from fair sometime declines,","By chance, or nature's changing course, untrimmed;"],
+      ["But thy eternal summer shall not fade,","Nor lose possession of that fair thou ow'st,","Nor shall death brag thou wand'rest in his shade,","When in eternal lines to Time thou grow'st."],
+      ["So long as men can breathe, or eyes can see,","So long lives this, and this gives life to thee."]
+    ]
+  },
+  {
+    id: 'thomas-gentle',
+    title: "Do Not Go Gentle",
+    author: "Dylan Thomas",
+    difficulty: "Advanced",
+    preview: "Do not go gentle into that good night,\nOld age should burn and rave at close of day…",
+    stanzas: [
+      ["Do not go gentle into that good night,","Old age should burn and rave at close of day;","Rage, rage against the dying of the light."],
+      ["Though wise men at their end know dark is right,","Because their words had forked no lightning they","Do not go gentle into that good night."],
+      ["Good men, the last wave by, crying how bright","Their frail deeds might have danced in a green bay,","Rage, rage against the dying of the light."],
+      ["Wild men who caught and sang the sun in flight,","And learn, too late, they grieved it on its way,","Do not go gentle into that good night."],
+      ["Grave men, near death, who see with blinding sight","Blind eyes could blaze like meteors and be gay,","Rage, rage against the dying of the light."],
+      ["And you, my father, there on the sad height,","Curse, bless, me now with your fierce tears, I pray.","Do not go gentle into that good night.","Rage, rage against the dying of the light."]
+    ]
+  }
+];
+
+// =====================
+// SPACED REPETITION
+// =====================
+const SR_INTERVALS = [1, 3, 7, 14, 30];
+const MODES_ORDER = ['read','listen','recall','test'];
+
+function getSRData(poemId) {
+  try { const r = localStorage.getItem(`sr_${poemId}`); return r ? JSON.parse(r) : { level:0, nextReview:null, completions:0 }; }
+  catch(e) { return { level:0, nextReview:null, completions:0 }; }
+}
+function saveSRData(poemId, data) { try { localStorage.setItem(`sr_${poemId}`, JSON.stringify(data)); } catch(e) {} }
+function markCompleted(poemId) {
+  const data = getSRData(poemId);
+  data.completions = (data.completions || 0) + 1;
+  data.level = Math.min(data.level + 1, SR_INTERVALS.length - 1);
+  const days = SR_INTERVALS[data.level];
+  const next = new Date(); next.setDate(next.getDate() + days);
+  data.nextReview = next.toISOString();
+  saveSRData(poemId, data); return days;
+}
+function isDue(poemId) { const d = getSRData(poemId); return d.nextReview ? new Date() >= new Date(d.nextReview) : false; }
+function daysUntilReview(poemId) { const d = getSRData(poemId); if (!d.nextReview) return null; return Math.ceil((new Date(d.nextReview) - new Date()) / 86400000); }
+
+// =====================
+// CHUNK STATE
+// =====================
+// A "chunk" is an array of stanza indices to focus on.
+// null = whole poem.
+let activeChunkStanzas = null;   // e.g. [0] or [0,1] or null
+let selectedChunkOption = 'whole'; // 'whole' | 'stanza-N' | 'pair-N' | 'cumulative'
+let chunkHistory = [];           // stanza indices already completed (for chain method)
+let chunkMode = false;           // are we in chunk mode?
+
+// Build chunks from poem stanzas
+function buildChunks(stanzas) {
+  // Individual stanzas
+  const individual = stanzas.map((_, i) => ({ label: `Stanza ${i+1}`, stanzas: [i] }));
+
+  // Pairs (if poem has enough stanzas)
+  const pairs = [];
+  for (let i = 0; i < stanzas.length - 1; i += 2) {
+    const end = Math.min(i + 1, stanzas.length - 1);
+    pairs.push({ label: `Stanzas ${i+1}–${end+1}`, stanzas: [i, end] });
+  }
+  if (stanzas.length % 2 !== 0 && stanzas.length > 2) {
+    // last stanza gets merged with previous pair
+    pairs[pairs.length - 1].stanzas.push(stanzas.length - 1);
+    pairs[pairs.length - 1].label = `Stanzas ${pairs[pairs.length-1].stanzas[0]+1}–${stanzas.length}`;
+  }
+
+  return { individual, pairs };
+}
+
+function getChunkLines(stanzaIndices) {
+  // Return allLines filtered to the given stanza indices
+  return allLines.filter(l => stanzaIndices.includes(l.stanza));
+}
+
+function getStanzaPreview(si) {
+  const lines = currentPoem.stanzas[si].filter(l => l.trim() !== '');
+  return lines[0] ? lines[0].substring(0, 45) + (lines[0].length > 45 ? '…' : '') : '';
+}
+
+function countRealLines(stanzaIndices) {
+  return stanzaIndices.reduce((acc, si) =>
+    acc + currentPoem.stanzas[si].filter(l => l.trim() !== '').length, 0);
+}
+
+// =====================
+// AUDIO ENGINE
+// =====================
+let isPlaying = false;
+let stopRequested = false;
+
+let voices = [];
+function loadVoices() { voices = window.speechSynthesis.getVoices(); }
+if ('speechSynthesis' in window) { loadVoices(); window.speechSynthesis.onvoiceschanged = loadVoices; }
+
+function getBestVoice() {
+  const preferred = ['Samantha','Daniel','Karen','Moira','Fiona','Google UK English Female','Google UK English Male','Microsoft Zira','Microsoft David'];
+  for (const name of preferred) { const v = voices.find(v => v.name.includes(name)); if (v) return v; }
+  return voices.find(v => v.lang.startsWith('en')) || null;
+}
+
+function speakLine(text, rate = 0.82) {
+  return new Promise((resolve) => {
+    if (stopRequested) { resolve(); return; }
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = rate; utt.pitch = 1.0;
+    const voice = getBestVoice(); if (voice) utt.voice = voice;
+    utt.onend = () => resolve();
+    utt.onerror = () => resolve();
+    window.speechSynthesis.speak(utt);
+  });
+}
+
+async function stopPlayback() {
+  stopRequested = true;
+  window.speechSynthesis.cancel();
+  isPlaying = false;
+  await new Promise(r => setTimeout(r, 80));
+  stopRequested = false;
+  setPlaying(false);
+}
+
+function pause(ms) {
+  return new Promise(r => {
+    const t = setTimeout(r, ms);
+    const check = setInterval(() => { if (stopRequested) { clearTimeout(t); clearInterval(check); r(); } }, 50);
+    setTimeout(() => clearInterval(check), ms + 100);
+  });
+}
+
+// =====================
+// APP STATE
+// =====================
+let currentPoem = null;
+let currentMode = 'read';
+let allLines = [];      // all non-empty lines in poem
+let chunkLines = [];    // lines in active chunk (= allLines if whole poem)
+let currentLine = 0;    // index into chunkLines
+let recognition = null;
+let micActive = false;
+
+// =====================
+// HOME
+// =====================
+function renderHome() {
+  const container = document.getElementById('poem-cards');
+  container.innerHTML = POEMS.map((p, i) => {
+    const sr = getSRData(p.id);
+    const due = isDue(p.id);
+    const days = daysUntilReview(p.id);
+    const modeLabel = sr.completions > 0 ? `Stage ${Math.min(sr.level+1,4)} of 4` : 'New';
+    const reviewLabel = due ? '● Review due' : (days !== null ? `Next review: ${days}d` : '');
+    return `
+    <div class="poem-card" onclick="openPoem(${i})">
+      <div class="card-number">Poem ${String(i+1).padStart(2,'0')}</div>
+      <div class="card-title">${p.title}</div>
+      <div class="card-author">${p.author}</div>
+      <div class="card-preview">${p.preview}</div>
+      <div class="card-meta">
+        <span class="card-pill">${p.difficulty}</span>
+        <span class="card-pill">${modeLabel}</span>
+        ${reviewLabel ? `<span class="card-pill ${due?'due':''}">${reviewLabel}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// =====================
+// OPEN POEM → CHUNK PICKER
+// =====================
+function openPoem(idx) {
+  currentPoem = POEMS[idx];
+  chunkHistory = [];
+  selectedChunkOption = 'whole';
+
+  // Build allLines
+  allLines = [];
+  currentPoem.stanzas.forEach((stanza, si) => {
+    stanza.forEach((line, li) => {
+      if (line.trim() !== '') allLines.push({ stanza: si, line: li, text: line });
+    });
+  });
+
+  // Populate chunk picker
+  document.getElementById('chunk-poem-title').textContent = currentPoem.title;
+  document.getElementById('chunk-poem-author').textContent = '— ' + currentPoem.author;
+  renderChunkPicker();
+  showScreen('chunk-screen');
+}
+
+function renderChunkPicker() {
+  const stanzas = currentPoem.stanzas;
+  const { individual, pairs } = buildChunks(stanzas);
+  const totalLines = allLines.length;
+
+  // Whole poem option
+  const optionsEl = document.getElementById('chunk-options');
+  optionsEl.innerHTML = `
+    <div class="chunk-option selected" id="opt-whole" onclick="selectChunk('whole')">
+      <div class="chunk-option-left">
+        <div class="chunk-option-label">Whole poem</div>
+        <div class="chunk-option-sub">All ${stanzas.length} stanzas from start to finish</div>
+      </div>
+      <div class="chunk-option-lines">${totalLines} lines</div>
+    </div>`;
+
+  // Per-stanza options
+  const customEl = document.getElementById('chunk-custom-options');
+  let html = '';
+
+  if (stanzas.length > 1) {
+    // Individual stanzas
+    html += `<div class="chunk-instruction">Single stanza</div>`;
+    individual.forEach((chunk, i) => {
+      const preview = getStanzaPreview(chunk.stanzas[0]);
+      const n = countRealLines(chunk.stanzas);
+      html += `
+        <div class="chunk-option" id="opt-stanza-${i}" onclick="selectChunk('stanza-${i}')">
+          <div class="chunk-option-left">
+            <div class="chunk-option-label">${chunk.label}</div>
+            <div class="chunk-option-sub">${preview}</div>
+          </div>
+          <div class="chunk-option-lines">${n} lines</div>
+        </div>`;
+    });
+
+    // Pairs (only show if poem has 3+ stanzas)
+    if (stanzas.length >= 3) {
+      html += `<div class="chunk-instruction">Two stanzas at a time</div>`;
+      pairs.forEach((chunk, i) => {
+        const preview = getStanzaPreview(chunk.stanzas[0]);
+        const n = countRealLines(chunk.stanzas);
+        html += `
+          <div class="chunk-option" id="opt-pair-${i}" onclick="selectChunk('pair-${i}')">
+            <div class="chunk-option-left">
+              <div class="chunk-option-label">${chunk.label}</div>
+              <div class="chunk-option-sub">${preview}</div>
+            </div>
+            <div class="chunk-option-lines">${n} lines</div>
+          </div>`;
+      });
+    }
+
+    // Chain method
+    html += `<div class="chunk-instruction">Chain method (recommended)</div>
+      <div class="chunk-option" id="opt-cumulative" onclick="selectChunk('cumulative')">
+        <div class="chunk-option-left">
+          <div class="chunk-option-label">Build stanza by stanza</div>
+          <div class="chunk-option-sub">Learn stanza 1, then 1+2 together, then 1+2+3…</div>
+        </div>
+        <div class="chunk-option-lines">${stanzas.length} steps</div>
+      </div>`;
+  }
+
+  customEl.innerHTML = html;
+}
+
+function selectChunk(key) {
+  selectedChunkOption = key;
+  document.querySelectorAll('.chunk-option').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('opt-' + key);
+  if (el) el.classList.add('selected');
+}
+
+function startWithChunk() {
+  const stanzas = currentPoem.stanzas;
+  const { individual, pairs } = buildChunks(stanzas);
+
+  if (selectedChunkOption === 'whole') {
+    chunkMode = false;
+    activeChunkStanzas = null;
+    chunkLines = allLines;
+    launchPoemScreen();
+    return;
+  }
+
+  chunkMode = true;
+  chunkHistory = [];
+
+  if (selectedChunkOption === 'cumulative') {
+    // Start with just stanza 0, will grow after each completion
+    activeChunkStanzas = [0];
+  } else if (selectedChunkOption.startsWith('stanza-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    activeChunkStanzas = individual[i].stanzas;
+  } else if (selectedChunkOption.startsWith('pair-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    activeChunkStanzas = pairs[i].stanzas;
+  }
+
+  chunkLines = getChunkLines(activeChunkStanzas);
+  launchPoemScreen();
+}
+
+// =====================
+// LAUNCH POEM SCREEN
+// =====================
+function launchPoemScreen() {
+  const srData = getSRData(currentPoem.id);
+  const suggestedMode = MODES_ORDER[Math.min(srData.level, MODES_ORDER.length - 1)];
+
+  document.getElementById('poem-title').textContent = currentPoem.title;
+  document.getElementById('poem-author').textContent = '— ' + currentPoem.author;
+
+  const banner = document.getElementById('sr-banner');
+  if (srData.completions > 0) {
+    banner.textContent = `Completed ${srData.completions} time${srData.completions>1?'s':''}. Suggested stage: ${suggestedMode.charAt(0).toUpperCase()+suggestedMode.slice(1)}`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+
+  document.getElementById('chain-banner').classList.remove('show');
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode('read');
+  showScreen('poem-screen');
+}
+
+// =====================
+// RENDER POEM
+// =====================
+function renderPoem() {
+  const body = document.getElementById('poem-body');
+  body.innerHTML = '';
+
+  currentPoem.stanzas.forEach((stanza, si) => {
+    const stanzaEl = document.createElement('div');
+    stanzaEl.className = 'stanza';
+    stanzaEl.id = `stanza-${si}`;
+
+    stanza.forEach((lineText, li) => {
+      const lineEl = document.createElement('div');
+      lineEl.className = 'line';
+      lineEl.id = `line-${si}-${li}`;
+      if (lineText.trim() === '') {
+        lineEl.innerHTML = '&nbsp;';
+      } else {
+        lineEl.innerHTML = lineText.split(' ').map((w, wi) =>
+          `<span class="word" data-s="${si}" data-l="${li}" data-w="${wi}">${w}</span>`
+        ).join(' ');
+      }
+      stanzaEl.appendChild(lineEl);
+    });
+
+    body.appendChild(stanzaEl);
+  });
+
+  applyChunkDimming();
+  highlightLine();
+}
+
+function applyChunkDimming() {
+  document.querySelectorAll('.stanza').forEach((el, si) => {
+    if (!chunkMode || activeChunkStanzas === null) {
+      el.classList.remove('out-of-chunk', 'in-chunk');
+    } else {
+      const inChunk = activeChunkStanzas.includes(si);
+      el.classList.toggle('in-chunk', inChunk);
+      el.classList.toggle('out-of-chunk', !inChunk);
+    }
+  });
+}
+
+// =====================
+// CHUNK NAV BAR
+// =====================
+function updateChunkNav() {
+  const nav = document.getElementById('chunk-nav');
+  if (!chunkMode) { nav.classList.remove('show'); return; }
+  nav.classList.add('show');
+
+  const stanzas = currentPoem.stanzas;
+  const label = document.getElementById('chunk-nav-label');
+
+  if (selectedChunkOption === 'cumulative') {
+    const step = activeChunkStanzas.length;
+    label.textContent = `Building: stanzas 1–${step} of ${stanzas.length}`;
+  } else if (selectedChunkOption.startsWith('stanza-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    label.textContent = `Stanza ${i+1} of ${stanzas.length}`;
+  } else if (selectedChunkOption.startsWith('pair-')) {
+    const { pairs } = buildChunks(stanzas);
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    if (pairs[i]) label.textContent = pairs[i].label;
+  } else {
+    label.textContent = 'Whole poem';
+  }
+
+  // Pips — one per stanza in the chunk
+  const pipRow = document.getElementById('chunk-pip-row');
+  pipRow.innerHTML = currentPoem.stanzas.map((_, si) => {
+    const inChunk = activeChunkStanzas && activeChunkStanzas.includes(si);
+    const done = chunkHistory.includes(si);
+    const cls = done ? 'done' : (inChunk ? 'active' : '');
+    return `<div class="chunk-pip ${cls}"></div>`;
+  }).join('');
+
+  // Prev/next buttons for stanza-by-stanza navigation
+  const prevBtn = document.getElementById('chunk-prev-btn');
+  const nextBtn = document.getElementById('chunk-next-btn');
+  const showNav = selectedChunkOption.startsWith('stanza-') || selectedChunkOption.startsWith('pair-');
+  prevBtn.style.display = showNav ? '' : 'none';
+  nextBtn.style.display = showNav ? '' : 'none';
+
+  if (showNav) {
+    const { individual, pairs } = buildChunks(currentPoem.stanzas);
+    if (selectedChunkOption.startsWith('stanza-')) {
+      const i = parseInt(selectedChunkOption.split('-')[1]);
+      prevBtn.disabled = i === 0;
+      nextBtn.disabled = i === individual.length - 1;
+    } else {
+      const i = parseInt(selectedChunkOption.split('-')[1]);
+      prevBtn.disabled = i === 0;
+      nextBtn.disabled = i === pairs.length - 1;
+    }
+  }
+}
+
+function goToPrevChunk() {
+  stopPlayback(); cleanupMic();
+  const { individual, pairs } = buildChunks(currentPoem.stanzas);
+  if (selectedChunkOption.startsWith('stanza-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    if (i > 0) { selectedChunkOption = `stanza-${i-1}`; activeChunkStanzas = individual[i-1].stanzas; }
+  } else if (selectedChunkOption.startsWith('pair-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    if (i > 0) { selectedChunkOption = `pair-${i-1}`; activeChunkStanzas = pairs[i-1].stanzas; }
+  }
+  chunkLines = getChunkLines(activeChunkStanzas);
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode(currentMode);
+}
+
+function goToNextChunk() {
+  stopPlayback(); cleanupMic();
+  const { individual, pairs } = buildChunks(currentPoem.stanzas);
+  if (selectedChunkOption.startsWith('stanza-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    if (i < individual.length - 1) { selectedChunkOption = `stanza-${i+1}`; activeChunkStanzas = individual[i+1].stanzas; }
+  } else if (selectedChunkOption.startsWith('pair-')) {
+    const i = parseInt(selectedChunkOption.split('-')[1]);
+    if (i < pairs.length - 1) { selectedChunkOption = `pair-${i+1}`; activeChunkStanzas = pairs[i+1].stanzas; }
+  }
+  chunkLines = getChunkLines(activeChunkStanzas);
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode(currentMode);
+}
+
+// =====================
+// MODES
+// =====================
+function setMode(mode) {
+  stopPlayback();
+  cleanupMic();
+  if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+  currentMode = mode;
+  currentLine = 0;
+
+  document.querySelectorAll('.word').forEach(w => w.classList.remove('hidden','revealed'));
+
+  MODES_ORDER.forEach(m => document.getElementById(`tab-${m}`).classList.toggle('active', m === mode));
+  const labels = { read:'Read Mode', listen:'Listen Mode', recall:'Recall Mode', test:'Test Mode' };
+  document.getElementById('current-mode-label').textContent = labels[mode];
+
+  const revealBtn = document.getElementById('reveal-btn');
+  const micBtn = document.getElementById('mic-btn');
+  const steps = { read:1, listen:2, recall:3, test:4 };
+  updateProgress(steps[mode], 4);
+
+  if (mode === 'read') {
+    revealBtn.style.display = 'none'; micBtn.style.display = 'none';
+    setMainBtn('▶','Read Aloud'); setStatus('Read along and listen');
+  } else if (mode === 'listen') {
+    revealBtn.style.display = 'none'; micBtn.style.display = 'none';
+    setMainBtn('▶','Listen'); setStatus('Listen line by line — follow along');
+  } else if (mode === 'recall') {
+    revealBtn.style.display = 'inline-flex'; micBtn.style.display = 'inline-flex';
+    micBtn.classList.remove('recording');
+    setMainBtn('▶','Hear Line'); setStatus('Words hidden — hear it, then speak it back');
+    applyHiding(0.55);
+  } else if (mode === 'test') {
+    revealBtn.style.display = 'inline-flex'; micBtn.style.display = 'inline-flex';
+    micBtn.classList.remove('recording');
+    setMainBtn('▶','Prompt Me'); setStatus('All hidden — recite each line from memory');
+    applyHiding(1.0);
+  }
+
+  highlightLine();
+  if (chunkMode && activeChunkStanzas) scrollToStanza(activeChunkStanzas[0]);
+}
+
+function applyHiding(fraction) {
+  // Only hide words within the active chunk
+  const activeLineIds = new Set(chunkLines.map(l => `line-${l.stanza}-${l.line}`));
+  document.querySelectorAll('.word').forEach(w => {
+    const lineId = w.closest('.line')?.id;
+    if (!lineId || !activeLineIds.has(lineId)) return;
+    w.classList.toggle('hidden', Math.random() < fraction);
+  });
+  if (fraction >= 1.0) {
+    document.querySelectorAll('.word').forEach(w => {
+      const lineId = w.closest('.line')?.id;
+      if (lineId && activeLineIds.has(lineId)) w.classList.add('hidden');
+    });
+  }
+}
+
+// =====================
+// MAIN BUTTON
+// =====================
+async function handleMain() {
+  if (isPlaying) { await stopPlayback(); return; }
+  if (currentMode === 'read' || currentMode === 'listen') {
+    await playFromLine(currentLine);
+  } else {
+    await speakCurrentLinePrompt();
+  }
+}
+
+async function playFromLine(startIdx) {
+  if (isPlaying) return;
+  isPlaying = true; stopRequested = false; setPlaying(true); setStatus('Speaking…');
+
+  const lines = chunkLines;
+  for (let i = startIdx; i < lines.length; i++) {
+    if (stopRequested) break;
+    currentLine = i;
+    highlightLine(); scrollToLine();
+    await speakLine(lines[i].text);
+    if (stopRequested) break;
+    const nextL = lines[i+1];
+    const interStanza = nextL && nextL.stanza !== lines[i].stanza;
+    await pause(interStanza ? 900 : 500);
+  }
+
+  if (!stopRequested) {
+    if (currentMode === 'listen') showChunkCompletion();
+    else setStatus('Complete — press play to repeat');
+  }
+  isPlaying = false; stopRequested = false; setPlaying(false);
+}
+
+async function speakCurrentLinePrompt() {
+  if (currentLine >= chunkLines.length) { showChunkCompletion(); return; }
+  if (isPlaying) return;
+  isPlaying = true; stopRequested = false; setPlaying(true);
+  const ld = chunkLines[currentLine];
+  setStatus(`Line ${currentLine + 1} of ${chunkLines.length}…`);
+  await speakLine(ld.text, 0.78);
+  isPlaying = false; stopRequested = false; setPlaying(false);
+  setStatus('Now speak the line, or tap ⏭ to continue');
+}
+
+function setPlaying(val) {
+  isPlaying = val;
+  const viz = document.getElementById('audio-viz');
+  if (val) { viz.classList.add('playing'); setMainBtn('■','Stop'); }
+  else {
+    viz.classList.remove('playing');
+    const lbl = { read:'Read Aloud', listen:'Listen', recall:'Hear Line', test:'Prompt Me' };
+    setMainBtn('▶', lbl[currentMode] || 'Play');
+  }
+}
+
+// =====================
+// SPEECH-TO-TEXT
+// =====================
+let micStarting = false;
+let finalResultReceived = false;
+
+function toggleMic() { if (micActive || micStarting) { stopMic(); return; } startMic(); }
+
+async function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { setStatus('Speech recognition not supported — try Chrome or Edge', 'error'); return; }
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (err) {
+    setStatus(err.name === 'NotAllowedError' ? 'Microphone permission denied — allow access and try again' : 'Could not access microphone: ' + err.message, 'error');
+    return;
+  }
+  if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; await new Promise(r => setTimeout(r, 120)); }
+
+  micStarting = true; finalResultReceived = false;
+  const rec = new SR();
+  rec.lang = navigator.language?.startsWith('en') ? navigator.language : 'en-US';
+  rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+
+  rec.onstart = () => { micStarting = false; micActive = true; recognition = rec; document.getElementById('mic-btn').classList.add('recording'); setStatus('Listening… speak the line'); showTranscript('…'); };
+  rec.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t; else interim += t;
+    }
+    showTranscript(final || interim);
+    if (final) { finalResultReceived = true; checkRecitation(final.trim()); }
+  };
+  rec.onerror = (e) => {
+    micStarting = false;
+    if (e.error === 'no-speech') setStatus('No speech detected — tap mic and try again');
+    else if (e.error === 'aborted') { /* silent */ }
+    else if (e.error === 'not-allowed') setStatus('Microphone access denied — check browser permissions', 'error');
+    else setStatus('Mic error: ' + e.error, 'error');
+    cleanupMic();
+  };
+  rec.onend = () => { micStarting = false; if (!finalResultReceived && micActive) setStatus('Tap 🎙 to try again, or ⏭ to skip'); cleanupMic(); };
+  try { rec.start(); } catch(e) { micStarting = false; setStatus('Could not start microphone: ' + e.message, 'error'); cleanupMic(); }
+}
+
+function stopMic() { micStarting = false; if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; } cleanupMic(); }
+function cleanupMic() { micActive = false; micStarting = false; const b = document.getElementById('mic-btn'); if (b) b.classList.remove('recording'); }
+
+function showTranscript(text) {
+  const el = document.getElementById('transcript-bubble');
+  el.textContent = `"${text}"`; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function checkRecitation(spoken) {
+  if (currentLine >= chunkLines.length) return;
+  const expected = chunkLines[currentLine].text.toLowerCase().replace(/[^a-z0-9\s]/g,'');
+  const got = spoken.toLowerCase().replace(/[^a-z0-9\s]/g,'');
+  const score = similarity(expected, got);
+  if (score > 0.65) {
+    setStatus('✓ Correct! Moving on…', 'success');
+    revealLine(chunkLines[currentLine].stanza, chunkLines[currentLine].line);
+    setTimeout(() => {
+      currentLine++;
+      highlightLine(); scrollToLine();
+      if (currentLine >= chunkLines.length) setTimeout(showChunkCompletion, 500);
+      else setStatus(`Line ${currentLine + 1} of ${chunkLines.length} — tap mic or Prompt Me`);
+    }, 800);
+  } else if (score > 0.35) {
+    setStatus('Almost there — try again or tap ⏭');
+  } else {
+    setStatus('Not quite — hear the line again, then try');
+  }
+}
+
+function similarity(a, b) {
+  const wa = new Set(a.split(/\s+/)), wb = new Set(b.split(/\s+/));
+  let overlap = 0; wa.forEach(w => { if (wb.has(w)) overlap++; });
+  return overlap / Math.max(wa.size, 1);
+}
+
+// =====================
+// LINE NAVIGATION
+// =====================
+function prevLine() {
+  if (currentLine > 0) { currentLine--; highlightLine(); scrollToLine(); }
+}
+
+function nextLine() {
+  if (currentLine < chunkLines.length - 1) {
+    if (currentMode === 'recall' || currentMode === 'test') revealLine(chunkLines[currentLine].stanza, chunkLines[currentLine].line);
+    currentLine++;
+    highlightLine(); scrollToLine();
+    setStatus(`Line ${currentLine + 1} of ${chunkLines.length}`);
+  } else if (currentMode === 'recall' || currentMode === 'test') {
+    revealLine(chunkLines[currentLine].stanza, chunkLines[currentLine].line);
+    setTimeout(showChunkCompletion, 600);
+  }
+}
+
+function highlightLine() {
+  document.querySelectorAll('.line').forEach(l => l.classList.remove('current-line'));
+  if (currentLine < chunkLines.length) {
+    const ld = chunkLines[currentLine];
+    const el = document.getElementById(`line-${ld.stanza}-${ld.line}`);
+    if (el) el.classList.add('current-line');
+  }
+}
+
+function scrollToLine() {
+  if (currentLine < chunkLines.length) {
+    const ld = chunkLines[currentLine];
+    const el = document.getElementById(`line-${ld.stanza}-${ld.line}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function scrollToStanza(si) {
+  const el = document.getElementById(`stanza-${si}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function revealLine(si, li) {
+  const el = document.getElementById(`line-${si}-${li}`);
+  if (!el) return;
+  el.querySelectorAll('.word.hidden').forEach(w => { w.classList.remove('hidden'); w.classList.add('revealed'); });
+}
+
+function revealCurrent() {
+  if (currentLine < chunkLines.length) { const ld = chunkLines[currentLine]; revealLine(ld.stanza, ld.line); setStatus('Revealed — try to remember next time'); }
+}
+
+// =====================
+// CHUNK COMPLETION
+// =====================
+function showChunkCompletion() {
+  stopPlayback(); stopMic();
+
+  const isCumulative = selectedChunkOption === 'cumulative';
+  const isWholePoem = !chunkMode;
+  const stanzas = currentPoem.stanzas;
+
+  // Mark stanzas done in chunk history
+  if (activeChunkStanzas) activeChunkStanzas.forEach(si => { if (!chunkHistory.includes(si)) chunkHistory.push(si); });
+
+  const allDone = chunkHistory.length >= stanzas.length;
+
+  const titleEl = document.getElementById('completion-title');
+  const subEl = document.getElementById('completion-sub');
+  const nextEl = document.getElementById('completion-next');
+  const quoteEl = document.getElementById('completion-quote');
+  const actionsEl = document.getElementById('completion-actions');
+
+  // Quote from last lines of chunk
+  const lastLines = chunkLines.slice(-2).map(l => l.text).join('\n');
+  quoteEl.textContent = lastLines;
+
+  if (isWholePoem || allDone) {
+    // Full poem completion
+    titleEl.textContent = 'Well done';
+    const days = markCompleted(currentPoem.id);
+    const srData = getSRData(currentPoem.id);
+    const nextMode = MODES_ORDER[Math.min(srData.level, MODES_ORDER.length - 1)];
+    subEl.textContent = srData.completions === 1 ? 'First full completion!' : `Completed ${srData.completions} times`;
+    nextEl.style.display = 'block';
+    nextEl.textContent = `Next review in ${days} day${days!==1?'s':''} · Suggested: ${nextMode.charAt(0).toUpperCase()+nextMode.slice(1)}`;
+    actionsEl.innerHTML = `
+      <button class="btn btn-primary" onclick="advanceMode()">Next Stage</button>
+      <button class="btn btn-secondary" onclick="restartPoem()">Practice Again</button>
+      <button class="btn btn-secondary" onclick="goHome()">Library</button>`;
+  } else if (isCumulative) {
+    // Cumulative — grow the chunk
+    const nextCount = activeChunkStanzas.length + 1;
+    titleEl.textContent = `Stanza ${activeChunkStanzas.length} done`;
+    subEl.textContent = `Now chain it — add stanza ${nextCount}`;
+    nextEl.style.display = 'none';
+    actionsEl.innerHTML = `
+      <button class="btn btn-primary" onclick="chainNextStanza()">Add Stanza ${nextCount} →</button>
+      <button class="btn btn-secondary" onclick="repeatCurrentChunk()">Repeat This Chunk</button>
+      <button class="btn btn-secondary" onclick="goHome()">Library</button>`;
+  } else {
+    // Single stanza / pair — offer to go to next
+    const { individual, pairs } = buildChunks(stanzas);
+    const isStanza = selectedChunkOption.startsWith('stanza-');
+    const isPair = selectedChunkOption.startsWith('pair-');
+    const idx = isStanza || isPair ? parseInt(selectedChunkOption.split('-')[1]) : -1;
+    const arr = isStanza ? individual : pairs;
+    const hasNext = idx >= 0 && idx < arr.length - 1;
+
+    titleEl.textContent = 'Chunk done';
+    subEl.textContent = `${chunkLines.length} lines memorised`;
+    nextEl.style.display = 'none';
+    let btns = `<button class="btn btn-secondary" onclick="repeatCurrentChunk()">Repeat</button>`;
+    if (hasNext) btns = `<button class="btn btn-primary" onclick="goToNextChunkFromCompletion()">Next Chunk →</button>` + btns;
+    btns += `<button class="btn btn-secondary" onclick="goHome()">Library</button>`;
+    actionsEl.innerHTML = btns;
+  }
+
+  document.getElementById('completion').classList.add('show');
+  renderHome();
+}
+
+function chainNextStanza() {
+  document.getElementById('completion').classList.remove('show');
+  const stanzas = currentPoem.stanzas;
+  const nextIdx = activeChunkStanzas.length; // since we go 0,1,2...
+  if (nextIdx >= stanzas.length) { showChunkCompletion(); return; }
+
+  activeChunkStanzas = Array.from({ length: nextIdx + 1 }, (_, i) => i);
+  chunkLines = getChunkLines(activeChunkStanzas);
+  currentLine = 0;
+
+  // Show chain banner
+  const banner = document.getElementById('chain-banner');
+  banner.textContent = `Chain: stanzas 1–${activeChunkStanzas.length} · New stanza highlighted below`;
+  banner.classList.add('show');
+
+  renderPoem();
+  updateChunkNav();
+  setMode(currentMode);
+
+  // Scroll to new stanza
+  setTimeout(() => scrollToStanza(nextIdx), 300);
+}
+
+function repeatCurrentChunk() {
+  document.getElementById('completion').classList.remove('show');
+  chunkLines = getChunkLines(activeChunkStanzas);
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode(currentMode);
+}
+
+function goToNextChunkFromCompletion() {
+  document.getElementById('completion').classList.remove('show');
+  goToNextChunk();
+}
+
+function advanceMode() {
+  document.getElementById('completion').classList.remove('show');
+  const srData = getSRData(currentPoem.id);
+  const nextMode = MODES_ORDER[Math.min(srData.level, MODES_ORDER.length - 1)];
+  chunkLines = chunkMode && activeChunkStanzas ? getChunkLines(activeChunkStanzas) : allLines;
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode(nextMode);
+}
+
+function restartPoem() {
+  document.getElementById('completion').classList.remove('show');
+  chunkLines = chunkMode && activeChunkStanzas ? getChunkLines(activeChunkStanzas) : allLines;
+  currentLine = 0;
+  renderPoem();
+  updateChunkNav();
+  setMode(currentMode);
+}
+
+// =====================
+// UI HELPERS
+// =====================
+function setMainBtn(icon, label) { document.getElementById('main-btn-icon').textContent = icon; document.getElementById('main-btn-label').textContent = label; }
+
+function setStatus(text, type = '') {
+  const el = document.getElementById('status-text');
+  el.textContent = text;
+  el.className = 'status-text' + (type ? ' ' + type : '');
+}
+
+function updateProgress(step, total) {
+  const pct = ((step - 1) / (total - 1)) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = `Stage ${step} of ${total}`;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goHome() {
+  stopPlayback();
+  if (recognition) { try { recognition.abort(); } catch(e) {} recognition = null; }
+  cleanupMic();
+  document.getElementById('completion').classList.remove('show');
+  renderHome();
+  showScreen('home');
+}
+
+// =====================
+// INIT
+// =====================
+renderHome();
+</script>
+</body>
+</html>
